@@ -1,0 +1,27 @@
+{
+  "name": "money-control-api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^2.0.1",
+    "compression": "^1.7.2",
+    "config": "^1.30.0",
+    "cors": "^2.8.4",
+    "express": "^4.16.3",
+    "express-async-errors": "^3.0.0",
+    "helmet": "^3.12.1",
+    "joi": "^13.4.0",
+    "joi-objectid": "^2.0.0",
+    "jsonwebtoken": "^8.3.0",
+    "lodash": "^4.17.10",
+    "mongoose": "^5.1.6",
+    "mongoose-paginate": "^5.0.3",
+    "winston": "^3.0.0"
+  }
+}

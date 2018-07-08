@@ -1,0 +1,23 @@
+{
+    "jwt": {
+        "privateKey": "",
+        "expiresIn": "1h"
+    },
+    "server": {
+        "port": 3000
+    },
+    "mongo": {
+        "db": "mongodb://localhost/",
+        "collection": "money-control",
+        "options": {
+            "auth": {
+                "user": "",
+                "password": ""
+            }
+        }
+    },
+    "logger": {
+        "path": "",
+        "level": "info"
+    }
+}

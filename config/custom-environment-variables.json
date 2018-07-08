@@ -1,0 +1,22 @@
+{
+    "jwt": {
+        "privateKey": "moneycontrol_jwtPrivateKey"
+    },
+    "server": {
+        "port": "moneycontrol_serverPort"
+    },
+    "mongo": {
+        "db": "moneycontrol_mongoDb",
+        "collection": "moneycontrol_mongoCollection",
+        "options": {
+            "auth": {
+                "user": "moneycontrol_mongoUser",
+                "password": "moneycontrol_mongoPw"
+            }
+        }
+    },
+    "logger": {
+        "path": "moneycontrol_path",
+        "level": "moneycontrol_level"
+    }
+}
