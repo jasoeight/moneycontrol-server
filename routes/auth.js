@@ -7,7 +7,13 @@ const validateMiddleware = require('../middleware/validate');
 const router = express.Router();
 
 router.post('/', validateMiddleware(validate), async (req, res) => {
-    let user = await User.findOne({ email: req.body.email });
+    let user = await User.findOne({
+        where: {
+            email: req.body.email,
+            public: true
+        }
+    });
+
     if (!user) {
         return res.status(400).send({ message: 'Invalid email or password.' });
     }

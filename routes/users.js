@@ -3,48 +3,53 @@ const bcrypt = require('bcrypt');
 const _ = require('lodash');
 const { User, validate, validateExisting } = require('../models/user');
 const validateMiddleware = require('../middleware/validate');
-const validateObjectIdMiddleware = require('../middleware/validateObjectId');
 const router = express.Router();
 
+const getAttributes = ['_id', 'name', 'email', 'all', 'public'];
+const postAttributes = ['name', 'email', 'all', 'public', 'password'];
+
 router.get('/', async (req, res) => {
-    let query   = {};
     let options = {
-        select: req.query.select || 'name email _id all',
-        sort: { name: 'asc' },
-        lean: true,
-        page: req.query.page ? parseInt(req.query.page, 10) : 1
+        attributes: req.query.select ? req.query.select.split(',') : getAttributes,
+        order: [['name', 'ASC']]
     };
 
     const limit = req.query.limit ? parseInt(req.query.limit, 10) : -1;
     if (limit > 0) {
         options.limit = limit;
+        if (req.query.page) {
+            options.offset = (parseInt(req.query.page, 10) - 1) * limit;
+        }
     }
 
     if (req.query.sortBy) {
-        options.sort = {};
-        options.sort[req.query.sortBy] = req.query.sortDir || 'asc';
+        options.order = [
+            [req.query.sortBy, (req.query.sortDir || 'asc').toUpperCase()]
+        ];
     }
         
-    const data = await User.paginate(query, options);
+    const data = await User.findAndCountAll(options);
     res.send(data);
 });
 
 router.post('/', validateMiddleware(validate), async (req, res) => {
-    const user = new User(_.pick(req.body, ['name', 'email', 'password', 'all']));
     const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(user.password, salt);
-    await user.save();
-    res.send(_.pick(user, ['_id', 'name', 'email', 'all']));
+    const params = _.pick(req.body, postAttributes);
+    params.password = await bcrypt.hash(params.password, salt);
+    const user = await User.create(params);
+    res.send(_.pick(user, getAttributes));
 });
 
 router.get('/me', async(req, res) => {
-    const user = await User.findById(req.user._id).select('-password');
+    const user = await await User.findOne({
+        attributes: getAttributes,
+        where: { _id: req.user._id }
+    });
     res.send(user);
 });
 
-router.put('/:id', [validateObjectIdMiddleware, validateMiddleware(validateExisting)], async (req, res) => {
-    let params = _.pick(req.body, ['name', 'email', 'password', 'all']);
-
+router.put('/:id', [validateMiddleware(validateExisting)], async (req, res) => {
+    let params = _.pick(req.body, postAttributes);
     if (_.isEmpty(params.password)) {
         delete params.password;
     }
@@ -54,36 +59,36 @@ router.put('/:id', [validateObjectIdMiddleware, validateMiddleware(validateExist
         params.password = await bcrypt.hash(params.password, salt);
     }
 
-    const user = await User.findByIdAndUpdate(
-        req.params.id, 
-        params,
-        { new: true }
-    );
-    
-    if (!user) {
+    const [ rows ] = await User.update(params, {
+        where: { _id: req.params.id }
+    });
+
+    if (rows === 0) {
         return res.status(404).send({ message: 'The user with the given ID was not found.' });
     }
 
-    res.send(user);
+    res.send({ success: true });
 });
   
-router.delete('/:id', validateObjectIdMiddleware, async (req, res) => {
-    const user = await User.findByIdAndRemove(req.params.id);
+router.delete('/:id', async (req, res) => {
+    const count = await User.destroy({ where: { _id: req.params.id } });
+    if (count === 0) {
+        return res.status(404).send({ message: 'The user with the given ID was not found.' });
+    }
   
+    res.send({ success: true });
+});
+  
+router.get('/:id', async (req, res) => {
+    const user = await await User.findOne({
+        attributes: getAttributes,
+        where: { _id: req.params.id }
+    });
     if (!user) {
         return res.status(404).send({ message: 'The user with the given ID was not found.' });
     }
   
-    res.send(user);
-});
-  
-router.get('/:id', validateObjectIdMiddleware, async (req, res) => {
-    const user = await User.findById(req.params.id);
-    if (!user) {
-        return res.status(404).send({ message: 'The user with the given ID was not found.' });
-    }
-  
-    res.send(user);
+    res.send(_.pick(user, getAttributes));
 });
 
 module.exports = router;

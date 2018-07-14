@@ -5,15 +5,11 @@
     "server": {
         "port": "moneycontrol_serverPort"
     },
-    "mongo": {
-        "db": "moneycontrol_mongoDb",
-        "collection": "moneycontrol_mongoCollection",
-        "options": {
-            "auth": {
-                "user": "moneycontrol_mongoUser",
-                "password": "moneycontrol_mongoPw"
-            }
-        }
+    "db": {
+        "name": "moneycontrol_dbName",
+        "host": "moneycontrol_dbHost",
+        "username": "moneycontrol_dbUsername",
+        "password": "moneycontrol_dbPassword"
     },
     "logger": {
         "path": "moneycontrol_path",

@@ -1,16 +1,17 @@
 const express = require('express');
 const _ = require('lodash');
 const { Transaction, validate } = require('../models/transaction');
+const { Account } = require('../models/account');
+const { User } = require('../models/user');
 const validateMiddleware = require('../middleware/validate');
-const validateObjectIdMiddleware = require('../middleware/validateObjectId');
 const router = express.Router();
 
 const allowedFields = [
     'amount',
     'description',
-    'account',
+    'accountId',
     'date',
-    'owner',
+    'userId',
     'tags',
     'type'
 ];
@@ -35,58 +36,45 @@ const getStatistic = (transactions, ref) => {
 }
 
 const getTransactionsByOwnerAll = async all => {
-    const transactions = await Transaction
-        .find()
-        .populate({
-            path: 'owner', 
-            select: '_id name all',
-            match: { all }
-        });
-
-    return transactions.filter(({ owner }) => owner !== null);
+    return await Transaction.findAll({
+        include: [{
+            model: User,
+            attributes: ['_id', 'name', 'email'],
+            where: { all }
+        }]
+    });
 };
 
 router.get('/', async (req, res) => {
-    let query   = {};
     let options = {
-        select: req.query.select || undefined,
-        sort: { date: 'desc' },
-        lean: true,
-        page: req.query.page ? parseInt(req.query.page, 10) : 1
+        order: [['date', 'DESC']]
     };
 
     const limit = req.query.limit ? parseInt(req.query.limit, 10) : -1;
     if (limit > 0) {
         options.limit = limit;
+        if (req.query.page) {
+            options.offset = (parseInt(req.query.page, 10) - 1) * limit;
+        }
     }
 
     if (req.query.sortBy) {
-        options.sort = {};
-        options.sort[req.query.sortBy] = req.query.sortDir || 'asc';
+        options.order = [
+            [req.query.sortBy, (req.query.sortDir || 'asc').toUpperCase()]
+        ];
     }
 
     if (req.query.noPopulate !== '1') {
-        options.populate = [
+        options.include = [
+            Account,
             {
-                path: 'account', 
-                select: 'name' 
-            },
-            { 
-                path: 'owner', 
-                select: 'name email' 
+                model: User,
+                attributes: ['_id', 'name', 'email', 'all']
             }
-        ]
+        ];
     }
-
-    if (req.query.account) {
-        query.account = req.query.account;
-    }
-
-    if (req.query.owner) {
-        query.owner = req.query.owner;
-    }
-        
-    const data = await Transaction.paginate(query, options);
+    
+    const data = await Transaction.findAndCountAll(options);
     res.send(data);
 });
 
@@ -98,14 +86,16 @@ router.get('/tags', async (req, res) => {
 });
 
 router.get('/stats/account', async (req, res) => {
-    const transactions = await Transaction.find().populate('account', '_id name');
+    const transactions = await Transaction.findAll({
+        include: [ Account ]
+    });
     res.send(getStatistic(transactions, 'account'));
 });
 
-router.get('/stats/owner', async (req, res) => {
+router.get('/stats/user', async (req, res) => {
     const transactionsOwners = await getTransactionsByOwnerAll(false);
     const transactionsAll = await getTransactionsByOwnerAll(true);
-    let stats = getStatistic(transactionsOwners, 'owner');
+    let stats = getStatistic(transactionsOwners, 'user');
     const statsKeys = Object.keys(stats);
     transactionsAll.forEach(transaction => {
         const personAmount = transaction.amount / statsKeys.length;
@@ -121,54 +111,51 @@ router.get('/stats/owner', async (req, res) => {
 });
 
 router.post('/', [validateMiddleware(validate)], async (req, res) => {
-    transaction = new Transaction(_.pick(req.body, allowedFields));
-    transaction = await transaction.save();
+    const transaction = await Transaction.create(_.pick(req.body, allowedFields));
     res.send(transaction);
 });
 
-router.put('/:id', [validateObjectIdMiddleware, validateMiddleware(validate)], async (req, res) => {
-    const transaction = await Transaction.findByIdAndUpdate(
-        req.params.id, 
-        _.pick(req.body, allowedFields),
-        { new: true }
-    );
+router.put('/:id', [validateMiddleware(validate)], async (req, res) => {
+    const params = _.pick(req.body, allowedFields);
+    const [ rows ] = await Transaction.update(params, {
+        where: { _id: req.params.id }
+    });
+
+    if (rows === 0) {
+        return res.status(404).send({ message: 'The transcation with the given ID was not found.' });
+    }
+
+    res.send({ success: true });
+});
+  
+router.delete('/:id', async (req, res) => {
+    const count = await Transaction.destroy({ where: { _id: req.params.id } });
+    if (count === 0) {
+        return res.status(404).send({ message: 'The transaction with the given ID was not found.' });
+    }
+  
+    res.send({ success: true });
+});
+  
+router.get('/:id', async (req, res) => {
+    let options = {
+        where: { _id: req.params.id }
+    };
+
     
-    if (!transaction) {
-        return res.status(404).send({
-            message: 'The transaction with the given ID was not found.'
-        });
+    if (req.query.noPopulate !== '1') {
+        options.include = [
+            Account,
+            {
+                model: User,
+                attributes: ['_id', 'name', 'email', 'all']
+            }
+        ];
     }
-
-    res.send(transaction);
-});
-  
-router.delete('/:id', validateObjectIdMiddleware, async (req, res) => {
-    const transaction = await Transaction.findByIdAndRemove(req.params.id);
+    
+    const transaction = await await Transaction.findOne(options);
     if (!transaction) {
-        return res.status(404).send({
-            message: 'The transaction with the given ID was not found.'
-        });
-    }
-  
-    res.send(transaction);
-});
-  
-router.get('/:id', validateObjectIdMiddleware, async (req, res) => {
-    const transaction = await Transaction
-        .findById(req.params.id)
-        .populate({ 
-            path: 'account', 
-            select: 'name' 
-        })
-        .populate({ 
-            path: 'owner', 
-            select: 'name email' 
-        });
-
-    if (!transaction) {
-        return res.status(404).send({
-            message: 'The transaction with the given ID was not found.'
-        });
+        return res.status(404).send({ message: 'The transaction with the given ID was not found.' });
     }
   
     res.send(transaction);

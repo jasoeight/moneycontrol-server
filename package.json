@@ -17,11 +17,10 @@
     "express-async-errors": "^3.0.0",
     "helmet": "^3.12.1",
     "joi": "^13.4.0",
-    "joi-objectid": "^2.0.0",
     "jsonwebtoken": "^8.3.0",
     "lodash": "^4.17.10",
-    "mongoose": "^5.1.6",
-    "mongoose-paginate": "^5.0.3",
+    "mysql2": "^1.5.3",
+    "sequelize": "4.38.0",
     "winston": "^3.0.0"
   }
 }

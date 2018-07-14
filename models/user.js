@@ -1,57 +1,67 @@
 const Joi = require('joi');
-const mongoose = require('mongoose');
-const mongoosePaginate = require('mongoose-paginate');
+const Sequelize = require('sequelize');
+const db = require('./db');
 const jwt = require('jsonwebtoken');
 const config = require('config');
+const _ = require('lodash');
 
-const schema = new mongoose.Schema({
+const User = db.define('users', {
+    _id: {
+        type: Sequelize.INTEGER.UNSIGNED,
+        primaryKey: true,
+        autoIncrement: true
+    },
     name: {
-        type: String,
-        required: true,
-        trim: true,
-        minlength: 5,
-        maxlength: 50
+        type: Sequelize.STRING(50),
+        allowNull: false,
+        unique: true,
+        set(val) {
+            this.setDataValue('name', val.trim());
+        }
     },
     email: {
-        type: String,
-        required: true,
-        unique: true,
-        minlength: 5,
-        maxlength: 255
+        type: Sequelize.STRING,
+        validate: {
+            isEmail: true
+        }
     },
     password: {
-        type: String,
-        required: true,
-        minlength: 5,
-        maxlength: 1024
+        type: Sequelize.STRING,
+        allowNull: false
     },
     all: {
-        type: Boolean,
-        default: false
+        type: Sequelize.BOOLEAN,
+        defaultValue: false
+    },
+    public: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: false
     }
+}, {
+    validate: {
+        requiredEmailForPublicUsers() {
+            if (this.public === true && _.isEmpty(this.email)) {
+                throw new Error('Required email for public users.');
+            }
+        }
+    },
+    timestamps: false
 });
 
-schema.plugin(mongoosePaginate);
-
-schema.methods.generateAuthToken = function() {
+User.prototype.generateAuthToken = function() {
     return jwt.sign(
-        { 
-            _id: this._id 
-        },
+        { _id: this._id },
         config.get('jwt.privateKey'),
-        {
-            expiresIn: config.get('jwt.expiresIn')
-        }
+        { expiresIn: config.get('jwt.expiresIn') }
     );
 };
-
-const User = mongoose.model('User', schema);
 
 function validate(user, create = true) {
     let options = {
         name: Joi.string().min(5).max(50).required().label('Name'),
-        email: Joi.string().min(5).max(255).required().email().label('Email'),
+        email: Joi.string().min(5).max(255).email().label('Email'),
         all: Joi.boolean().default(false).label('All'),
+        public: Joi.boolean().default(false).label('Public'),
         password: Joi.string().min(5).max(255).allow('').optional().label('Password')
     }
 

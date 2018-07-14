@@ -1,46 +1,58 @@
 const Joi = require('joi');
-const mongoose = require('mongoose');
-const mongoosePaginate = require('mongoose-paginate');
+const Sequelize = require('sequelize');
+const db = require('./db');
 const _ = require('lodash');
+const { Account } = require('./account');
+const { User } = require('./user');
 
-let schema = new mongoose.Schema({
+const Transaction = db.define('transactions', {
+    _id: {
+        type: Sequelize.INTEGER.UNSIGNED,
+        primaryKey: true,
+        autoIncrement: true
+    },
     amount: {
-        type: Number,
-        required: true,
-        min: 0
+        type: Sequelize.DOUBLE.UNSIGNED,
+        allowNull: false,
+        defaultValue: 0,
+        validate: { 
+            min: 0,
+            isDecimal: true
+        }
     },
     description: {
-        type: String,
-        required: true,
-        trim: true
+        type: Sequelize.STRING,
+        allowNull: false,
+        set(val) {
+            this.setDataValue('description', val.trim());
+        }
     },
-    account: {
-        type: mongoose.Schema.Types.ObjectId,
-        required: true,
-        ref: 'Account'
+    date: {
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.NOW
     },
-    date: { 
-        type: Date,
-        default: Date.now
+    tags: {
+        type: Sequelize.STRING,
+        get() {
+            return this.getDataValue('tags').split(',');
+        },
+        set(val) {
+            this.setDataValue('tags', val.join(','));
+        }
     },
-    owner: {
-        type: mongoose.Schema.Types.ObjectId,
-        required: true,
-        ref: 'User'
-    },
-    tags: [ String ],
     type: {
-        type: String,
-        default: 'expense',
-        lowercase: true,
-        enum: ['income', 'expense']
+        type: Sequelize.ENUM('income', 'expense'),
+        defaultValue: 'expense'
     }
+}, {
+    timestamps: false
 });
 
-schema.plugin(mongoosePaginate);
+Transaction.belongsTo(User);
+Transaction.belongsTo(Account);
 
-schema.statics.findAllTags = function() {
-    return this.find().select('tags')
+Transaction.findAllTags = function() {
+    return this.findAll({ attributes: ['tags'] })
         .then(items => {
             let tags = [];
             items.forEach(tansaction => {
@@ -55,8 +67,8 @@ function validate(transaction) {
     return Joi.validate(transaction, {
         amount: Joi.number().required().min(0).precision(2).label('Amount'),
         description: Joi.string().required().label('Description'),
-        account: Joi.objectId().required().label('Account'),
-        owner: Joi.objectId().required().label('Owner'),
+        accountId: Joi.number().required().label('Account'),
+        userId: Joi.number().required().label('Owner'),
         date: Joi.date().label('Date'),
         tags: Joi.array().items(
             Joi.string()
@@ -67,5 +79,5 @@ function validate(transaction) {
     });
 };
 
-module.exports.Transaction = mongoose.model('Transaction', schema);
+module.exports.Transaction = Transaction;
 module.exports.validate = validate;

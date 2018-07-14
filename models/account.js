@@ -1,19 +1,21 @@
 const Joi = require('joi');
-const mongoose = require('mongoose');
-const mongoosePaginate = require('mongoose-paginate');
+const Sequelize = require('sequelize');
+const db = require('./db');
 
-const schema = new mongoose.Schema({
+const Account = db.define('accounts', {
+    _id: {
+        type: Sequelize.INTEGER.UNSIGNED,
+        primaryKey: true,
+        autoIncrement: true
+    },
     name: {
-        type: String,
-        required: 'Name is required',
-        unique: true,
-        trim: true
+        type: Sequelize.STRING,
+        allowNull: false,
+        unique: true
     }
+}, {
+    timestamps: false
 });
-
-schema.plugin(mongoosePaginate);
-
-const Account = mongoose.model('Account', schema);
 
 function validate(account) {
     return Joi.validate(account, {

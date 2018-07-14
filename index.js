@@ -9,8 +9,6 @@ require('./startup/logging')();
 require('./startup/config')();
 require('./startup/prod')(app);
 require('./startup/routes')(app);
-require('./startup/validate')();
-require('./startup/db')();
 
 /* start app and server */
 const port = config.get('server.port');

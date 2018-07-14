@@ -6,15 +6,11 @@
     "server": {
         "port": 3000
     },
-    "mongo": {
-        "db": "mongodb://localhost/",
-        "collection": "money-control",
-        "options": {
-            "auth": {
-                "user": "",
-                "password": ""
-            }
-        }
+    "db": {
+        "name": "moneycontrol",
+        "host": "localhost",
+        "username": "",
+        "password": ""
     },
     "logger": {
         "path": "",
