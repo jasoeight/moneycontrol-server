@@ -7,6 +7,7 @@ const accounts = require('../routes/accounts');
 const users = require('../routes/users');
 const transactions = require('../routes/transactions');
 const auth = require('../routes/auth');
+const healthy = require('../routes/healthy');
 
 /* middlewares */
 const authMiddleware = require('../middleware/auth');
@@ -20,5 +21,6 @@ module.exports = function(app) {
     app.use('/api/users', authMiddleware, users);
     app.use('/api/transactions', authMiddleware, transactions);
     app.use('/api/auth', auth);
+    app.use('/healthy', healthy);
     app.use(errorMiddleware);
 };
