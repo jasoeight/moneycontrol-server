@@ -6,9 +6,12 @@ const router = express.Router();
 
 router.get('/', async (req, res) => {
     let options = {
-        attributes: req.query.select ? req.query.select.split(',') : getAttributes,
         order: [['name', 'ASC']]
     };
+
+    if (req.query.select) {
+        options.attributes = req.query.select.split(',');
+    }
 
     const limit = req.query.limit ? parseInt(req.query.limit, 10) : -1;
     if (limit > 0) {
