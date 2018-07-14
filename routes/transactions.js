@@ -59,19 +59,39 @@ router.get('/', async (req, res) => {
     }
 
     if (req.query.sortBy) {
-        options.order = [
-            [req.query.sortBy, (req.query.sortDir || 'asc').toUpperCase()]
-        ];
+        const direction = (req.query.sortDir || 'asc').toUpperCase();
+        options.order = [];
+        switch (req.query.sortBy) {
+            case 'account':
+                options.order.push([Account, 'name', direction]);
+                break;
+            case 'user':
+                options.order.push([User, 'name', direction]);
+                break;
+            default:
+                options.order.push([req.query.sortBy, direction]);
+        }
     }
 
-    if (req.query.noPopulate !== '1') {
-        options.include = [
-            Account,
-            {
-                model: User,
-                attributes: ['_id', 'name', 'email', 'all']
-            }
-        ];
+    options.include = [];
+    let accountsInclude = { model: Account };
+    let usersInclude = {
+        model: User,
+        attributes: ['_id', 'name', 'email', 'all']
+    };
+
+    if (req.query.account || req.query.noPopulate !== '1') {
+        if (req.query.account) {
+            accountsInclude.where = { _id: req.query.account };
+        }
+        options.include.push(accountsInclude);
+    }
+
+    if (req.query.user || req.query.noPopulate !== '1') {
+        if (req.query.user) {
+            usersInclude.where = { _id: req.query.user };
+        }
+        options.include.push(usersInclude);
     }
     
     const data = await Transaction.findAndCountAll(options);
