@@ -11,5 +11,5 @@ require('./startup/prod')(app);
 require('./startup/routes')(app);
 
 /* start app and server */
-const port = config.get('server.port');
+const port = process.env.PORT || config.get('server.port');
 app.listen(port, () => winston.info(`Listening on port ${port}...`));
