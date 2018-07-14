@@ -11,5 +11,9 @@ require('./startup/prod')(app);
 require('./startup/routes')(app);
 
 /* start app and server */
-const port = process.env.PORT || config.get('server.port');
-app.listen(port, () => winston.info(`Listening on port ${port}...`));
+if (process.env.NODE_ENV !== 'production') {
+    const port = process.env.PORT || config.get('server.port');
+    app.listen(port, () => winston.info(`Listening on port ${port}...`));
+}
+
+module.exports  = app;
