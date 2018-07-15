@@ -1,8 +1,33 @@
-const data = require('../resource/money-control-d2002-export.json');
 const bcrypt = require('bcrypt');
 const { Transaction } = require('../models/transaction');
 const { Account } = require('../models/account');
 const { User } = require('../models/user');
+const commandLineArgs = require('command-line-args')
+const fs = require('fs')
+
+class FileDetails {
+    constructor (filename) {
+        this.filename = filename
+        this.exists = fs.existsSync(filename)
+        if (this.exists) {
+            const realPath = fs.realpathSync(filename);
+            this.data = require(realPath);
+        }
+    }
+};
+
+const cli = commandLineArgs([
+    { name: 'file', type: filename => new FileDetails(filename) },
+    { name: 'password', type: String }
+]);
+
+if (!cli.file.exists) {
+    throw new Error(`File ${filename} does not exist`);
+}
+
+if (!cli.password) {
+    throw new Error(`Missing password`);
+}
 
 function importAccounts(accounts) {
     let promises = [];
@@ -72,11 +97,11 @@ function importTransactions(transactions, accounts, users) {
 }
 
 async function importData() {
-    const accounts = await importAccounts(data.accounts);
+    const accounts = await importAccounts(cli.file.data.accounts);
     const salt = await bcrypt.genSalt(10);
-    const password = await bcrypt.hash('1234567', salt)
-    const users = await importUsers(data.users, password);
-    const countTransactions = await importTransactions(data.transactions, accounts, users);
+    const password = await bcrypt.hash(cli.password, salt)
+    const users = await importUsers(cli.file.data.users, password);
+    const countTransactions = await importTransactions(cli.file.data.transactions, accounts, users);
     console.log('Accounts', Object.keys(accounts).length);
     console.log('Users', Object.keys(users).length);
     console.log('Transactions', countTransactions);
