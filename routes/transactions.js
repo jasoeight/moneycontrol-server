@@ -1,4 +1,5 @@
 const express = require('express');
+const Op = require('sequelize').Op;
 const _ = require('lodash');
 const { Transaction, validate } = require('../models/transaction');
 const { Account } = require('../models/account');
@@ -46,9 +47,9 @@ const getTransactionsByOwnerAll = async all => {
 };
 
 router.get('/', async (req, res) => {
-    let options = {
-        order: [['date', 'DESC']]
-    };
+    const search = req.query.search ? JSON.parse(req.query.search) : {};
+    let options = { order: [['date', 'DESC']] };
+    let where = {};
 
     const limit = req.query.limit ? parseInt(req.query.limit, 10) : -1;
     if (limit > 0) {
@@ -80,20 +81,44 @@ router.get('/', async (req, res) => {
         attributes: ['_id', 'name', 'email', 'all']
     };
 
-    if (req.query.account || req.query.noPopulate !== '1') {
-        if (req.query.account) {
-            accountsInclude.where = { _id: req.query.account };
+    if (search.accountId || req.query.noPopulate !== '1') {
+        if (search.accountId) {
+            accountsInclude.where = { _id: search.accountId };
         }
         options.include.push(accountsInclude);
     }
 
-    if (req.query.user || req.query.noPopulate !== '1') {
-        if (req.query.user) {
-            usersInclude.where = { _id: req.query.user };
+    if (search.userId || req.query.noPopulate !== '1') {
+        if (search.userId) {
+            usersInclude.where = { _id: search.userId };
         }
         options.include.push(usersInclude);
     }
+
+    if (search.amount) {
+        where.amount = { [Op.gte]: search.amount };
+    }
+
+    if (search.description) {
+        where.description = { [Op.like]: `%${search.description}%` };
+    }
+
+    if (search.tags && search.tags.length > 0) {
+        where.tags = { [Op.in]: search.tags };
+    }
+
+    if (search.type) {
+        where.type = search.type;
+    }
+
+    if (search.date) {
+        where.date = { [Op.gte]: search.date };
+    }
     
+    if (!_.isEmpty(where)) {
+        options.where = where;
+    }
+
     const data = await Transaction.findAndCountAll(options);
     res.send(data);
 });
