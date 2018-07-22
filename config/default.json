@@ -1,7 +1,9 @@
 {
     "jwt": {
-        "privateKey": "",
-        "expiresIn": "1h"
+        "tokenSecret": "",
+        "refreshTokenSecret": "",
+        "tokenExpiresIn": "1h",
+        "refreshTokenExpiresIn": "4h"
     },
     "server": {
         "port": 3000
