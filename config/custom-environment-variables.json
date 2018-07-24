@@ -1,6 +1,7 @@
 {
     "jwt": {
-        "privateKey": "moneycontrol_jwtPrivateKey"
+        "tokenSecret": "moneycontrol_jwtPrivateKey",
+        "refreshTokenSecret": "moneycontrol_jwtRefreshPrivateKey"
     },
     "server": {
         "port": "moneycontrol_serverPort"

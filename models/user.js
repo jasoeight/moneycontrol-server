@@ -51,8 +51,16 @@ const User = db.define('users', {
 User.prototype.generateAuthToken = function() {
     return jwt.sign(
         { _id: this._id },
-        config.get('jwt.privateKey'),
-        { expiresIn: config.get('jwt.expiresIn') }
+        config.get('jwt.tokenSecret'),
+        { expiresIn: config.get('jwt.tokenExpiresIn') }
+    );
+};
+
+User.prototype.generateRefreshToken = function() {
+    return jwt.sign(
+        { _id: this._id },
+        config.get('jwt.refreshTokenSecret'),
+        { expiresIn: config.get('jwt.refreshTokenExpiresIn') }
     );
 };
 
