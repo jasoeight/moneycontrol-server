@@ -104,7 +104,7 @@ router.get('/', async (req, res) => {
     }
 
     if (search.tags && search.tags.length > 0) {
-        where.tags = { [Op.in]: search.tags };
+        where.tags = { [Op.or]: search.tags.map(value => ({ [Op.like]: `%${value}%` })) };
     }
 
     if (search.type) {
